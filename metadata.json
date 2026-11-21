@@ -1,0 +1,8 @@
+{
+  "name": "UZBEK GAMING HUB",
+  "description": "O‘zbekistonning zamonaviy 3D brauzer o‘yinlari, 1v1 kiber arena va turnirlar ekotizimi.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
