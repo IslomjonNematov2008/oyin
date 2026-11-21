@@ -1,40 +1,36 @@
 import crypto from 'crypto';
 import { Request, Response, NextFunction } from 'express';
-import { hubStore } from './store.ts';
-import { EligibleAgeGroup } from '../src/types/hub.ts';
+import { marketStore } from './marketStore.ts';
 
 // Runtime-ephemeral fallback if SESSION_SECRET is unset (never hardcoded)
 const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
 
-export interface SessionPayload {
-  userId: string;
-  role: 'player' | 'admin';
-  ageGroup: EligibleAgeGroup;
+export interface AdminSessionPayload {
+  role: 'admin';
   iat: number;
   exp: number;
 }
 
-export interface AuthRequest extends Request {
-  auth?: SessionPayload;
+export interface AdminRequest extends Request {
+  admin?: AdminSessionPayload;
 }
 
 function signHmac(data: string): string {
   return crypto.createHmac('sha256', SESSION_SECRET).update(data).digest('base64url');
 }
 
-export function createSessionToken(payload: Omit<SessionPayload, 'iat' | 'exp'>): string {
+export function createAdminSessionToken(): string {
   const now = Math.floor(Date.now() / 1000);
-  const full: SessionPayload = {
-    ...payload,
+  const full: AdminSessionPayload = {
+    role: 'admin',
     iat: now,
-    exp: now + 60 * 60 * 24 * 7, // 7 days
+    exp: now + 60 * 60 * 24 * 3, // 3 days
   };
   const body = Buffer.from(JSON.stringify(full)).toString('base64url');
-  const sig = signHmac(body);
-  return `${body}.${sig}`;
+  return `${body}.${signHmac(body)}`;
 }
 
-export function verifySessionToken(token: string): SessionPayload | null {
+export function verifyAdminSessionToken(token: string): AdminSessionPayload | null {
   try {
     const parts = token.split('.');
     if (parts.length !== 2) return null;
@@ -45,42 +41,14 @@ export function verifySessionToken(token: string): SessionPayload | null {
     if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
       return null;
     }
-    const decoded = JSON.parse(Buffer.from(body, 'base64url').toString('utf-8')) as SessionPayload;
+    const decoded = JSON.parse(Buffer.from(body, 'base64url').toString('utf-8')) as AdminSessionPayload;
     if (!decoded.exp || decoded.exp < Math.floor(Date.now() / 1000)) {
       return null;
     }
+    if (decoded.role !== 'admin') return null;
     return decoded;
   } catch {
     return null;
-  }
-}
-
-export function createAssuranceToken(ageGroup: EligibleAgeGroup): string {
-  const payload = {
-    ageGroup,
-    nonce: crypto.randomBytes(8).toString('hex'),
-    exp: Math.floor(Date.now() / 1000) + 900, // 15 min
-  };
-  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  return `${body}.${signHmac(body)}`;
-}
-
-export function verifyAssuranceToken(token: string, expectedAgeGroup: EligibleAgeGroup): boolean {
-  try {
-    const parts = token.split('.');
-    if (parts.length !== 2) return false;
-    const [body, sig] = parts;
-    const expected = signHmac(body);
-    const sigBuf = Buffer.from(sig);
-    const expBuf = Buffer.from(expected);
-    if (sigBuf.length !== expBuf.length || !crypto.timingSafeEqual(sigBuf, expBuf)) {
-      return false;
-    }
-    const parsed = JSON.parse(Buffer.from(body, 'base64url').toString('utf-8'));
-    if (parsed.exp < Math.floor(Date.now() / 1000)) return false;
-    return parsed.ageGroup === expectedAgeGroup;
-  } catch {
-    return false;
   }
 }
 
@@ -101,44 +69,29 @@ export function verifyPasscodeHash(passcode: string, stored: string): boolean {
 export function verifyAdminPasscode(passcode: string): boolean {
   const envPasscode = (process.env.ADMIN_PASSCODE || '').trim();
   if (envPasscode.length > 0) {
-    const a = Buffer.from(passcode);
-    const b = Buffer.from(envPasscode);
-    return a.length === b.length && crypto.timingSafeEqual(a, b);
+    const a = crypto.createHash('sha256').update(passcode).digest();
+    const b = crypto.createHash('sha256').update(envPasscode).digest();
+    return crypto.timingSafeEqual(a, b);
   }
-  const storedHash = hubStore.getState().adminCredentialHash;
+  const storedHash = marketStore.getState().adminCredentialHash;
   if (!storedHash) return false;
   return verifyPasscodeHash(passcode, storedHash);
 }
 
-export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+export function requireAdmin(req: AdminRequest, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Avtorizatsiya talab qilinadi.' });
+    return res.status(401).json({ error: 'Administrator avtorizatsiyasi talab qilinadi.' });
   }
   const token = header.slice(7).trim();
-  const payload = verifySessionToken(token);
+  const payload = verifyAdminSessionToken(token);
   if (!payload) {
     return res.status(401).json({ error: 'Sessiya muddati tugagan yoki yaroqsiz.' });
   }
-  const user = hubStore.getUserById(payload.userId);
-  if (!user) {
-    return res.status(401).json({ error: 'Foydalanuvchi topilmadi.' });
-  }
-  if (user.status === 'suspended') {
-    return res.status(403).json({ error: 'Hisob vaqtincha bloklangan.' });
-  }
-  req.auth = payload;
+  req.admin = payload;
   next();
 }
 
-export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction) {
-  if (!req.auth || req.auth.role !== 'admin') {
-    return res.status(403).json({ error: 'Administrator huquqi talab qilinadi.' });
-  }
-  next();
-}
-
-// Simple in-memory rate limiter for sensitive endpoints
 const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
 export function rateLimit(maxRequests: number, windowMs: number) {

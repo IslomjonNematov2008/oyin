@@ -1,6 +1,6 @@
 {
-  "name": "UZBEK GAMING HUB",
-  "description": "O‘zbekistonning zamonaviy 3D brauzer o‘yinlari, 1v1 kiber arena va turnirlar ekotizimi.",
+  "name": "OLOV MOBILE — Online Telefon Bozori",
+  "description": "O‘zbekistondagi zamonaviy smartfonlar do‘koni, tezkor onlayn buyurtma, real vaqtda Telegram kanal xabarnomasi va boshqaruv paneli.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

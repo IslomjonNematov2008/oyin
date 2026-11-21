@@ -3,20 +3,25 @@
 
 @layer base {
   :root {
-    --font-display: 'Chakra Petch', system-ui, sans-serif;
+    --font-display: 'Outfit', system-ui, sans-serif;
     --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
   }
 
+  html {
+    scroll-behavior: smooth;
+  }
+
   body {
     font-family: var(--font-sans);
-    background-color: #06070A;
-    color: #F1F5F9;
+    background-color: #FFFFFF;
+    color: #0B0B0F;
     overflow-x: hidden;
   }
 
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
+    text-wrap: balance;
   }
 
   .font-mono, .tabular-nums {
@@ -24,26 +29,28 @@
   }
 }
 
-/* Custom subtle scrollbars for dark gaming UI */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #090B10;
+  background: #F4F4F6;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1E2433;
+  background: #D1D1D6;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #FF6B00;
+  background: #FF5500;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

@@ -1,85 +1,82 @@
-import React, { useState } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { HubProvider, useHub } from './context/HubContext.tsx';
-import { RegistrationFlow } from './components/onboarding/RegistrationFlow.tsx';
-import { Navbar } from './components/layout/Navbar.tsx';
-import { HomePage } from './pages/HomePage.tsx';
-import { GamesLibraryPage } from './pages/GamesLibraryPage.tsx';
-import { Arena1v1 } from './components/arena/Arena1v1.tsx';
-import { TournamentsPage } from './pages/TournamentsPage.tsx';
-import { LeaderboardPage } from './pages/LeaderboardPage.tsx';
-import { ProfilePage } from './pages/ProfilePage.tsx';
+import React from 'react';
+import { BrowserRouter, Link, Navigate, Route, Routes } from 'react-router-dom';
+import { MarketProvider, useMarket } from './context/MarketContext.tsx';
+import { Header } from './components/layout/Header.tsx';
+import { StorefrontPage } from './pages/StorefrontPage.tsx';
 import { AdminPage } from './pages/AdminPage.tsx';
-import { GamePlayModal } from './components/games/GamePlayModal.tsx';
-import { GameItem } from './types/hub.ts';
+import { ProductDetailModal } from './components/store/ProductDetailModal.tsx';
+import { CartCheckoutDrawer } from './components/store/CartCheckoutDrawer.tsx';
 
-const HubShell: React.FC = () => {
-  const { user, toasts } = useHub();
-  const [activeGame, setActiveGame] = useState<GameItem | null>(null);
+const MarketShell: React.FC = () => {
+  const { toasts } = useMarket();
 
   return (
-    <>
-      {!user ? (
-        <RegistrationFlow />
-      ) : (
-        <div className="min-h-screen flex flex-col bg-[#06070A] text-slate-100">
-          <Navbar />
+    <div className="min-h-screen flex flex-col bg-white text-[#0B0B0F]">
+      <Header />
 
-          <main className="flex-1">
-            <Routes>
-              <Route path="/" element={<HomePage onSelectGame={setActiveGame} />} />
-              <Route path="/games" element={<GamesLibraryPage onSelectGame={setActiveGame} />} />
-              <Route path="/arena" element={<Arena1v1 />} />
-              <Route path="/tournaments" element={<TournamentsPage />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              <Route path="/profile" element={<ProfilePage onSelectGame={setActiveGame} />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </main>
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<StorefrontPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </main>
 
-          <footer className="border-t border-white/10 bg-[#080A0F] py-6 px-4 sm:px-6 text-xs text-slate-500">
-            <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
-              <span className="font-display font-semibold text-slate-300">
-                UZBEK GAMING HUB
-              </span>
-              <span>
-                © {new Date().getFullYear()} UZBEK GAMING HUB · 16+ yoshga moslashtirilgan xavfsiz o‘yin ekotizimi
-              </span>
-            </div>
-          </footer>
+      <footer className="bg-[#0B0B0F] text-neutral-400 border-t border-white/10 py-8 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs">
+          <div className="space-y-1">
+            <span className="font-display text-sm font-extrabold text-white tracking-tight">
+              OLOV MOBILE
+            </span>
+            <p className="text-neutral-500">
+              Toshkent sh., Malika savdo majmuasi B-12 · Har kuni 09:00 – 21:00
+            </p>
+          </div>
 
-          <GamePlayModal game={activeGame} onClose={() => setActiveGame(null)} />
+          <div className="flex flex-wrap items-center gap-6 text-neutral-300">
+            <Link to="/" className="hover:text-[#FF5500] transition-colors">
+              Katalog
+            </Link>
+            <Link to="/admin" className="hover:text-[#FF5500] transition-colors">
+              Admin Panel
+            </Link>
+            <span className="text-neutral-500">
+              © {new Date().getFullYear()} OLOV MOBILE
+            </span>
+          </div>
         </div>
-      )}
+      </footer>
 
-      {/* Toast Notifications */}
+      <ProductDetailModal />
+      <CartCheckoutDrawer />
+
+      {/* Toast Stack */}
       <div className="fixed bottom-4 right-4 z-[60] space-y-2 max-w-xs w-full pointer-events-none">
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`px-4 py-3 rounded-xl border text-xs font-medium shadow-xl pointer-events-auto ${
+            className={`px-4 py-3 rounded-xl border text-xs font-medium shadow-lg pointer-events-auto ${
               t.type === 'error'
-                ? 'bg-red-950/95 border-red-500/50 text-red-100'
+                ? 'bg-red-950 border-red-500/40 text-red-100'
                 : t.type === 'success'
-                ? 'bg-[#0D171C]/95 border-[#00D2FF]/50 text-[#E0F2FE]'
-                : 'bg-[#0D1018]/95 border-white/15 text-slate-100'
+                ? 'bg-[#0B0B0F] border-[#FF5500]/60 text-white'
+                : 'bg-[#0B0B0F] border-white/15 text-white'
             }`}
           >
             {t.text}
           </div>
         ))}
       </div>
-    </>
+    </div>
   );
 };
 
 export default function App() {
   return (
     <BrowserRouter>
-      <HubProvider>
-        <HubShell />
-      </HubProvider>
+      <MarketProvider>
+        <MarketShell />
+      </MarketProvider>
     </BrowserRouter>
   );
 }
